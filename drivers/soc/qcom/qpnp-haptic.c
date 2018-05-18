@@ -1,4 +1,5 @@
 /* Copyright (c) 2014-2018, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -382,6 +383,8 @@ struct qpnp_hap {
 	u8				act_type;
 	u8				wave_shape;
 	u8				wave_samp[QPNP_HAP_WAV_SAMP_LEN];
+	u8				wave_samp_two[QPNP_HAP_WAV_SAMP_LEN];
+	u8				wave_samp_three[QPNP_HAP_WAV_SAMP_LEN];
 	u8				shadow_wave_samp[QPNP_HAP_WAV_SAMP_LEN];
 	u8				brake_pat[QPNP_HAP_BRAKE_PAT_LEN];
 	u8				sc_count;
@@ -564,13 +567,14 @@ static int qpnp_hap_mod_enable(struct qpnp_hap *hap, bool on)
 				break;
 			}
 		}
-
+		pr_info("zjl %s  11 val == %d\n", __func__, val);
 		if (i >= QPNP_HAP_MAX_RETRIES)
 			pr_debug("Haptics Busy. Force disable\n");
 	}
 
 	val = on ? QPNP_HAP_EN_BIT : 0;
 	rc = qpnp_hap_write_reg(hap, QPNP_HAP_EN_CTL_REG(hap->base), val);
+	pr_info("zjl %s  end val == %d\n", __func__, val);
 	if (rc < 0)
 		return rc;
 
@@ -1048,6 +1052,27 @@ static int qpnp_hap_parse_buffer_dt(struct qpnp_hap *hap)
 	} else {
 		memcpy(hap->wave_samp, prop->value, QPNP_HAP_WAV_SAMP_LEN);
 	}
+
+		prop = of_find_property(pdev->dev.of_node,
+			"qcom,wave-samples-two", &temp);
+	if (!prop || temp != QPNP_HAP_WAV_SAMP_LEN) {
+		pr_err("Invalid wave samples, use default");
+		for (i = 0; i < QPNP_HAP_WAV_SAMP_LEN; i++)
+			hap->wave_samp_two[i] = QPNP_HAP_WAV_SAMP_MAX;
+	} else {
+		memcpy(hap->wave_samp_two, prop->value, QPNP_HAP_WAV_SAMP_LEN);
+	}
+
+		prop = of_find_property(pdev->dev.of_node,
+			"qcom,wave-samples-three", &temp);
+	if (!prop || temp != QPNP_HAP_WAV_SAMP_LEN) {
+		pr_err("Invalid wave samples, use default");
+		for (i = 0; i < QPNP_HAP_WAV_SAMP_LEN; i++)
+			hap->wave_samp_three[i] = QPNP_HAP_WAV_SAMP_MAX;
+	} else {
+		memcpy(hap->wave_samp_three, prop->value, QPNP_HAP_WAV_SAMP_LEN);
+	}
+
 
 	return 0;
 }
@@ -2233,7 +2258,7 @@ static void qpnp_hap_td_enable(struct timed_output_dev *dev, int time_ms)
 					 timed_dev);
 	bool state = !!time_ms;
 	ktime_t rem;
-	int rc;
+	int rc, vmax_mv;
 
 	if (time_ms < 0)
 		return;
@@ -2264,6 +2289,9 @@ static void qpnp_hap_td_enable(struct timed_output_dev *dev, int time_ms)
 	} else {
 		if (time_ms < 10)
 			time_ms = 10;
+
+		vmax_mv = hap->vmax_mv;
+		qpnp_hap_vmax_config(hap, vmax_mv, false);
 
 		if (hap->auto_mode) {
 			rc = qpnp_hap_auto_mode_config(hap, time_ms);
@@ -2343,7 +2371,7 @@ int qpnp_hap_play_byte(u8 data, bool on)
 	pr_debug("data=0x%x duty_per=%d\n", data, duty_percent);
 
 	rc = qpnp_hap_set(hap, true);
-
+pr_info("%s  zjl f   asd  7 \n", __func__);
 	return rc;
 }
 EXPORT_SYMBOL(qpnp_hap_play_byte);

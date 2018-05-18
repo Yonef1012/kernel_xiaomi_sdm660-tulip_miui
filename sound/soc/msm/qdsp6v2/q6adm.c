@@ -1,4 +1,5 @@
 /* Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2147,7 +2148,8 @@ static int get_cal_path(int path)
 }
 
 static void send_adm_cal(int port_id, int copp_idx, int path, int perf_mode,
-			 int app_type, int acdb_id, int sample_rate)
+			 int app_type, int acdb_id, int sample_rate,
+			 int passthr_mode)
 {
 	pr_debug("%s: port id 0x%x copp_idx %d\n", __func__, port_id, copp_idx);
 
@@ -3355,7 +3357,8 @@ int adm_matrix_map(int path, struct route_payload payload_map, int perf_mode,
 				     get_cal_path(path), perf_mode,
 				     payload_map.app_type[i],
 				     payload_map.acdb_dev_id[i],
-				     payload_map.sample_rate[i]);
+				     payload_map.sample_rate[i],
+				     passthr_mode);
 			/* ADM COPP calibration is already sent */
 			clear_bit(ADM_STATUS_CALIBRATION_REQUIRED,
 				(void *)&this_adm.copp.
