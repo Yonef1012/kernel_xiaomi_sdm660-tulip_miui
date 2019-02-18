@@ -1,0 +1,55 @@
+/*
+ * Copyright (c) 2015-2017, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2018 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+*/
+
+&slim_aud {
+	wcd934x_cdc: tavil_codec {
+		/delete-node/msm_cdc_pinctrl_usbc_audio_en1;
+		/delete-node/msm_cdc_pinctrl_usbc_audio_en2;
+	};
+};
+
+&soc {
+	cdc_sdw_gpios: sdw_clk_data_pinctrl {
+		/delete-property/pinctrl-names;
+		/delete-property/pinctrl-0;
+		//pinctrl-1;
+	};
+	wsa_spkr_en1: wsa_spkr_en1_pinctrl {
+		/delete-property/pinctrl-names;
+		/delete-property/pinctrl-0;
+		//pinctrl-1;
+	};
+	wsa_spkr_en2: wsa_spkr_en2_pinctrl {
+		/delete-property/pinctrl-names;
+		/delete-property/pinctrl-0;
+		//pinctrl-1;
+	};
+	msm_sdw_codec: msm-sdw-codec@152c1000 { 
+		/delete-property/qcom,cdc-sdw-gpios;
+		swr_master {
+			wsa881x_211_en: wsa881x_en@20170211 {
+				status = "disabled";
+			};
+			wsa881x_212_en: wsa881x_en@20170212 {
+			status = "disabled";
+			};
+			wsa881x_213_en: wsa881x_en@21170213 {
+				status = "disabled";
+			};
+			wsa881x_214_en: wsa881x_en@21170214 {
+				status = "disabled";
+			};
+		};
+	};
+};

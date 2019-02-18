@@ -1,0 +1,55 @@
+/* Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2018 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+/ {
+	firmware: firmware {
+		android {
+			fstab {
+				system {
+					compatible = "android,system";
+					dev = "/dev/block/platform/soc/c0c4000.sdhci/by-name/system";
+					type = "ext4";
+					mnt_flags = "ro,barrier=1";
+					fsmgr_flags = "wait,verify";
+					status = "ok";
+				};
+				vendor {
+					mnt_flags = "ro,barrier=1";
+					fsmgr_flags = "wait,verify";
+				};
+			};
+		};
+	};
+};
+
+&soc {
+	/delete-node/qcom,qbt1000;
+	qcom,sensor-information {
+		sensor_information22: qcom,sensor-information-22 {
+			qcom,sensor-type = "adc";
+			qcom,sensor-name = "backlight_therm";
+		};
+	};
+	qcom,bcl {
+		qcom,bcl-soc-hotplug-list = <&CPU4 &CPU5>;
+	};
+	qcom_seecom: qseecom@86d00000 {
+		/delete-property/qcom,fde-key-size;
+	};
+        sn_fuse: snfuse@0xA4128 {
+                 compatible = "qcom,sn-fuse";
+                 reg = <0x786134 0x4>,
+                     <0x78607C 0x4>;
+                 reg-names = "sn-base","fuse-state";
+         };
+};
