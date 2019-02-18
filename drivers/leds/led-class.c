@@ -91,6 +91,29 @@ static ssize_t max_brightness_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(max_brightness);
 
+#if defined(CONFIG_KERNEL_CUSTOM_TULIP)
+#include <linux/gpio.h>
+int sim_sd_gpio_status;
+static ssize_t sim_sd_gpio_status_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+
+   		sim_sd_gpio_status = gpio_get_value(90);
+
+	return sprintf(buf, "%u\n", sim_sd_gpio_status);
+}
+
+static ssize_t sim_sd_gpio_status_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+
+
+	return 0;
+}
+static DEVICE_ATTR_RW(sim_sd_gpio_status);
+#endif
+
+
 #ifdef CONFIG_LEDS_TRIGGERS
 static DEVICE_ATTR(trigger, 0644, led_trigger_show, led_trigger_store);
 static struct attribute *led_trigger_attrs[] = {
@@ -105,6 +128,11 @@ static const struct attribute_group led_trigger_group = {
 static struct attribute *led_class_attrs[] = {
 	&dev_attr_brightness.attr,
 	&dev_attr_max_brightness.attr,
+
+#if defined(CONFIG_KERNEL_CUSTOM_TULIP)
+	&dev_attr_sim_sd_gpio_status.attr,
+#endif
+
 	NULL,
 };
 

@@ -827,8 +827,8 @@ static void hidinput_configure_usage(struct hid_input *hidinput, struct hid_fiel
 		case 0x0e0: map_abs_clear(ABS_VOLUME);		break;
 		case 0x0e2: map_key_clear(KEY_MUTE);		break;
 		case 0x0e5: map_key_clear(KEY_BASSBOOST);	break;
-		case 0x0e9: map_key_clear(KEY_VOLUMEUP);	break;
-		case 0x0ea: map_key_clear(KEY_VOLUMEDOWN);	break;
+		case 0x0e9: map_key_clear(BTN_1);		break;
+		case 0x0ea: map_key_clear(BTN_2);		break;
 		case 0x0f5: map_key_clear(KEY_SLOW);		break;
 
 		case 0x181: map_key_clear(KEY_BUTTONCONFIG);	break;

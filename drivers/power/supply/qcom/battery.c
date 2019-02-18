@@ -10,7 +10,7 @@
  * GNU General Public License for more details.
  */
 
-#define pr_fmt(fmt) "QCOM-BATT: %s: " fmt, __func__
+#define pr_fmt(fmt) "lct QCOM-BATT: %s: " fmt, __func__
 
 #include <linux/device.h>
 #include <linux/delay.h>
@@ -40,6 +40,7 @@
 #define ICL_CHANGE_VOTER		"ICL_CHANGE_VOTER"
 #define PL_INDIRECT_VOTER		"PL_INDIRECT_VOTER"
 #define USBIN_I_VOTER			"USBIN_I_VOTER"
+#define PL_TEMP_VOTER			"PL_TEMP_VOTER"
 
 struct pl_data {
 	int			pl_mode;
@@ -76,7 +77,7 @@ enum print_reason {
 	PR_PARALLEL	= BIT(0),
 };
 
-static int debug_mask;
+static int debug_mask = 0xff;
 module_param_named(debug_mask, debug_mask, int, S_IRUSR | S_IWUSR);
 
 #define pl_dbg(chip, reason, fmt, ...)				\
@@ -339,7 +340,7 @@ static void pl_taper_work(struct work_struct *work)
 	pl_dbg(chip, PR_PARALLEL, "entering parallel taper work slave_fcc = %d\n",
 			chip->slave_fcc_ua);
 	if (chip->slave_fcc_ua < MINIMUM_PARALLEL_FCC_UA) {
-		pl_dbg(chip, PR_PARALLEL, "terminating parallel's share lower than 500mA\n");
+		pl_dbg(chip, PR_PARALLEL, "terminating parallel's share lower than 500mA smb1351\n");
 		vote(chip->pl_disable_votable, TAPER_END_VOTER, true, 0);
 		goto done;
 	}
@@ -353,7 +354,7 @@ static void pl_taper_work(struct work_struct *work)
 
 	chip->charge_type = pval.intval;
 	if (pval.intval == POWER_SUPPLY_CHARGE_TYPE_TAPER) {
-		pl_dbg(chip, PR_PARALLEL, "master is taper charging; reducing slave FCC\n");
+		pl_dbg(chip, PR_PARALLEL, "master is taper charging; reducing smb1351 slave FCC\n");
 
 		vote(chip->pl_awake_votable, TAPER_END_VOTER, true, 0);
 		/* Reduce the taper percent by 25 percent */
@@ -518,7 +519,9 @@ static int pl_fcc_vote_callback(struct votable *votable, void *data,
 	return 0;
 }
 
-#define PARALLEL_FLOAT_VOLTAGE_DELTA_UV 50000
+
+#define PARALLEL_FLOAT_VOLTAGE_DELTA_UV 100000
+
 static int pl_fv_vote_callback(struct votable *votable, void *data,
 			int fv_uv, const char *client)
 {
@@ -586,8 +589,10 @@ static int usb_icl_vote_callback(struct votable *votable, void *data,
 	 *	unvote USBIN_I_VOTER) the status_changed_work enables
 	 *	USBIN_I_VOTER based on settled current.
 	 */
-	if (icl_ua <= 1400000)
+	if (icl_ua <= 1300000){
+		pr_err("icl_ua <= 1300000 disable parallel charger smb1351 \n");
 		vote(chip->pl_enable_votable_indirect, USBIN_I_VOTER, false, 0);
+	}
 	else
 		schedule_delayed_work(&chip->status_change_work,
 						msecs_to_jiffies(PL_DELAY_MS));
@@ -819,10 +824,11 @@ static void handle_main_charge_type(struct pl_data *chip)
 		pr_err("Couldn't get batt charge type rc=%d\n", rc);
 		return;
 	}
-
+	pr_err("chip->charge_type =%d, pval.intval=%d \n", chip->charge_type, pval.intval);
 	/* not fast/not taper state to disables parallel */
 	if ((pval.intval != POWER_SUPPLY_CHARGE_TYPE_FAST)
 		&& (pval.intval != POWER_SUPPLY_CHARGE_TYPE_TAPER)) {
+		pr_err("main charge CHG_STATE_VOTER disable parllerl charging smb1351\n");
 		vote(chip->pl_disable_votable, CHG_STATE_VOTER, true, 0);
 		chip->taper_pct = 100;
 		vote(chip->pl_disable_votable, TAPER_END_VOTER, false, 0);
@@ -863,6 +869,10 @@ static void handle_settled_icl_change(struct pl_data *chip)
 	int main_settled_ua;
 	int main_limited;
 	int total_current_ua;
+#if defined(CONFIG_KERNEL_CUSTOM_WHYRED) || defined(CONFIG_KERNEL_CUSTOM_TULIP)
+	int battery_temp;
+	union power_supply_propval lct_pval = {0, };
+#endif
 
 	total_current_ua = get_effective_result_locked(chip->usb_icl_votable);
 
@@ -887,15 +897,60 @@ static void handle_settled_icl_change(struct pl_data *chip)
 		return;
 	}
 	main_limited = pval.intval;
-
-	if ((main_limited && (main_settled_ua + chip->pl_settled_ua) < 1400000)
+#if defined(CONFIG_KERNEL_CUSTOM_WHYRED) || defined(CONFIG_KERNEL_CUSTOM_TULIP)
+	if (chip->pl_mode == POWER_SUPPLY_PL_USBIN_USBIN) {
+		rc = power_supply_get_property(chip->batt_psy,
+				       POWER_SUPPLY_PROP_TEMP,
+				       &lct_pval);
+		if (rc < 0) {
+			pr_err("Couldn't battery health value rc=%d\n", rc);
+			return;
+		}
+		battery_temp = lct_pval.intval;
+		pr_err("main_limited=%d, main_settled_ua=%d, chip->pl_settled_ua=%d ,total_current_ua=%d , battery_temp=%d\n", main_limited, main_settled_ua, chip->pl_settled_ua, total_current_ua, battery_temp);
+		if ((main_limited && (main_settled_ua + chip->pl_settled_ua) < 1300000)
+				|| (main_settled_ua == 0)
+				|| ((total_current_ua >= 0) &&
+					(total_current_ua <= 1300000))){
+			pr_err("total_current_ua <= 1300000 disable parallel charger smb1351 \n");
+			vote(chip->pl_enable_votable_indirect, USBIN_I_VOTER, false, 0);
+			vote(chip->pl_disable_votable, PL_TEMP_VOTER, true, 0);
+		}
+		else {
+			if ((battery_temp > 20) && (battery_temp < 440)) {
+				vote(chip->pl_enable_votable_indirect, USBIN_I_VOTER, true, 0);
+				vote(chip->pl_disable_votable, PL_TEMP_VOTER, false, 0);
+			}
+			else {
+				vote(chip->pl_enable_votable_indirect, USBIN_I_VOTER, false, 0);
+				vote(chip->pl_disable_votable, PL_TEMP_VOTER, true, 0);
+			}
+		}
+	}
+	else {
+		pr_err("main_limited=%d, main_settled_ua=%d, chip->pl_settled_ua=%d ,total_current_ua=%d\n", main_limited, main_settled_ua, chip->pl_settled_ua, total_current_ua);
+		if ((main_limited && (main_settled_ua + chip->pl_settled_ua) < 1300000)
+				|| (main_settled_ua == 0)
+				|| ((total_current_ua >= 0) &&
+					(total_current_ua <= 1300000))){
+			pr_err("total_current_ua <= 1300000 disable parallel charger smb1351 \n");
+			vote(chip->pl_enable_votable_indirect, USBIN_I_VOTER, false, 0);
+		}
+		else
+			vote(chip->pl_enable_votable_indirect, USBIN_I_VOTER, true, 0);
+	}
+#else
+	pr_err("main_limited=%d, main_settled_ua=%d, chip->pl_settled_ua=%d ,total_current_ua=%d\n", main_limited, main_settled_ua, chip->pl_settled_ua, total_current_ua);
+	if ((main_limited && (main_settled_ua + chip->pl_settled_ua) < 1300000)
 			|| (main_settled_ua == 0)
 			|| ((total_current_ua >= 0) &&
-				(total_current_ua <= 1400000)))
+				(total_current_ua <= 1300000))){
+		pr_err("total_current_ua <= 1300000 disable parallel charger smb1351 \n");
 		vote(chip->pl_enable_votable_indirect, USBIN_I_VOTER, false, 0);
+	}
 	else
 		vote(chip->pl_enable_votable_indirect, USBIN_I_VOTER, true, 0);
-
+#endif
 
 	if (get_effective_result(chip->pl_disable_votable))
 		return;
@@ -945,6 +1000,7 @@ static void handle_parallel_in_taper(struct pl_data *chip)
 	 * we disable parallel charger
 	 */
 	if (pval.intval == POWER_SUPPLY_CHARGE_TYPE_TAPER) {
+		pr_err("parallel disabled  when smb1351 is taper charge\n");
 		vote(chip->pl_disable_votable, PL_TAPER_EARLY_BAD_VOTER,
 				true, 0);
 		return;

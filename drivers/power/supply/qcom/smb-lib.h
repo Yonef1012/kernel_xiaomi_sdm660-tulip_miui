@@ -67,6 +67,9 @@ enum print_reason {
 #define WEAK_CHARGER_VOTER		"WEAK_CHARGER_VOTER"
 #define OV_VOTER			"OV_VOTER"
 
+#define CONFIG_CHARGER_RUNIN
+#define THERMAL_CONFIG_FB 1
+
 #define VCONN_MAX_ATTEMPTS	3
 #define OTG_MAX_ATTEMPTS	3
 #define BOOST_BACK_STORM_COUNT	3
@@ -255,6 +258,7 @@ struct smb_charger {
 	struct power_supply		*usb_main_psy;
 	struct power_supply		*usb_port_psy;
 	enum power_supply_type		real_charger_type;
+	struct power_supply             *pl_psy;
 
 	/* notifiers */
 	struct notifier_block	nb;
@@ -337,13 +341,20 @@ struct smb_charger {
 	u8			float_cfg;
 	bool			use_extcon;
 	bool			otg_present;
+#ifdef THERMAL_CONFIG_FB
+	struct notifier_block notifier;
+	struct work_struct fb_notify_work;
+#endif
 
 	/* workaround flag */
 	u32			wa_flags;
 	bool			cc2_detach_wa_active;
 	bool			typec_en_dis_active;
+	bool			float_rerun_apsd;
 	int			boost_current_ua;
 	int			temp_speed_reading_count;
+	int			qc2_max_pulses;
+    bool		non_compliant_chg_detected;
 
 	/* extcon for VBUS / ID notification to USB for uUSB */
 	struct extcon_dev	*extcon;
@@ -355,6 +366,10 @@ struct smb_charger {
 	/* qnovo */
 	int			usb_icl_delta_ua;
 	int			pulse_cnt;
+
+#if defined(CONFIG_KERNEL_CUSTOM_WHYRED)
+	int			die_health;
+#endif
 };
 
 int smblib_read(struct smb_charger *chg, u16 addr, u8 *val);
@@ -518,6 +533,12 @@ int smblib_get_charge_current(struct smb_charger *chg, int *total_current_ua);
 int smblib_get_prop_pr_swap_in_progress(struct smb_charger *chg,
 				union power_supply_propval *val);
 int smblib_set_prop_pr_swap_in_progress(struct smb_charger *chg,
+				const union power_supply_propval *val);
+
+int smblib_get_prop_battery_full_design(struct smb_charger *chg,
+				     union power_supply_propval *val);
+
+int smblib_set_prop_rerun_apsd(struct smb_charger *chg,
 				const union power_supply_propval *val);
 
 int smblib_init(struct smb_charger *chg);
