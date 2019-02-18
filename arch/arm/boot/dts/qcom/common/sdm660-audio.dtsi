@@ -23,17 +23,17 @@
 	cdc_sdw_gpios: sdw_clk_data_pinctrl {
 		/delete-property/pinctrl-names;
 		/delete-property/pinctrl-0;
-		//pinctrl-1;
+		/delete-property/pinctrl-1;
 	};
 	wsa_spkr_en1: wsa_spkr_en1_pinctrl {
 		/delete-property/pinctrl-names;
 		/delete-property/pinctrl-0;
-		//pinctrl-1;
+		/delete-property/pinctrl-1;
 	};
 	wsa_spkr_en2: wsa_spkr_en2_pinctrl {
 		/delete-property/pinctrl-names;
 		/delete-property/pinctrl-0;
-		//pinctrl-1;
+		/delete-property/pinctrl-1;
 	};
 	msm_sdw_codec: msm-sdw-codec@152c1000 { 
 		/delete-property/qcom,cdc-sdw-gpios;
