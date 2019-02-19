@@ -1184,8 +1184,10 @@ static int ath10k_wmi_tlv_op_pull_fw_stats(struct ath10k *ar,
 		struct ath10k_fw_stats_pdev *dst;
 
 		src = data;
-		if (data_len < sizeof(*src))
+		if (data_len < sizeof(*src)) {
+			kfree(tb);
 			return -EPROTO;
+		}
 
 		data += sizeof(*src);
 		data_len -= sizeof(*src);
@@ -1205,8 +1207,10 @@ static int ath10k_wmi_tlv_op_pull_fw_stats(struct ath10k *ar,
 		struct ath10k_fw_stats_vdev *dst;
 
 		src = data;
-		if (data_len < sizeof(*src))
+		if (data_len < sizeof(*src)) {
+			kfree(tb);
 			return -EPROTO;
+		}
 
 		data += sizeof(*src);
 		data_len -= sizeof(*src);
@@ -1224,8 +1228,10 @@ static int ath10k_wmi_tlv_op_pull_fw_stats(struct ath10k *ar,
 		struct ath10k_fw_stats_peer *dst;
 
 		src = data;
-		if (data_len < sizeof(*src))
+		if (data_len < sizeof(*src)) {
+			kfree(tb);
 			return -EPROTO;
+		}
 
 		data += sizeof(*src);
 		data_len -= sizeof(*src);
@@ -1569,10 +1575,10 @@ ath10k_wmi_tlv_op_gen_start_scan(struct ath10k *ar,
 	bssid_len = arg->n_bssids * sizeof(struct wmi_mac_addr);
 	ie_len = roundup(arg->ie_len, 4);
 	len = (sizeof(*tlv) + sizeof(*cmd)) +
-	      (arg->n_channels ? sizeof(*tlv) + chan_len : 0) +
-	      (arg->n_ssids ? sizeof(*tlv) + ssid_len : 0) +
-	      (arg->n_bssids ? sizeof(*tlv) + bssid_len : 0) +
-	      (arg->ie_len ? sizeof(*tlv) + ie_len : 0);
+	      sizeof(*tlv) + chan_len +
+	      sizeof(*tlv) + ssid_len +
+	      sizeof(*tlv) + bssid_len +
+	      sizeof(*tlv) + ie_len;
 
 	skb = ath10k_wmi_alloc_skb(ar, len);
 	if (!skb)
