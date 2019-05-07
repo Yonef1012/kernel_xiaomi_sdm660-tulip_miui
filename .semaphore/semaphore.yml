@@ -1,0 +1,20 @@
+version: v1.0
+name: CompileKernel
+agent:
+  machine:
+    type: e1-standard-8
+    os_image: ubuntu1804
+blocks:
+  - name: "Build"
+    task:
+      secrets:
+        - name: tg_token
+        - name: tg_id
+      env_vars:
+        - name: APP_ENV
+          value: prod
+      jobs:
+      - name: Compile Kernel
+        commands:
+          - checkout
+          - bash .semaphore/compile-kernel.sh
