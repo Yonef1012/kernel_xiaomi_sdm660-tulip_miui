@@ -81,7 +81,7 @@ THREAD="-j$CORES"
 # gcc
 #CROSS_COMPILE="$PWD/stock/bin/aarch64-linux-android-"
 #clang
-PATH="${KERNEL_DIR}/clang/bin:${KERNEL_DIR}/stock/bin:${PATH}"
+PATH="${KERNEL_DIR}/clang/bin:${KERNEL_DIR}/stock/bin:${PATH}:${KERNEL_DIR}/stock_32/bin:${PATH}"
 KBUILD_COMPILER_STRING="$(clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g')"
 
 # Export
@@ -99,6 +99,7 @@ install-package --update-new bc bash git-core gnupg build-essential \
 
 # gcc
 git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b android-9.0.0_r37 --depth=1 stock
+git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 -b android-9.0.0_r39 --depth=1 stock_32
 
 # clang
 wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/master/clang-r353983c.tar.gz
@@ -130,7 +131,8 @@ make -j$(nproc --all) O=out \
                       ARCH=arm64 \
                       CC=clang \
                       CLANG_TRIPLE=aarch64-linux-gnu- \
-                      CROSS_COMPILE=aarch64-linux-android-
+                      CROSS_COMPILE=aarch64-linux-android- \
+                      CROSS_COMPILE_ARM32=arm-linux-androideabi-
 
 BUILD_END=$(date +"%s")
 DIFF=$(($BUILD_END - $BUILD_START))
