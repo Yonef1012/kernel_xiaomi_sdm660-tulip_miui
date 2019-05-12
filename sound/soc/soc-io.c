@@ -16,6 +16,9 @@
 #include <linux/regmap.h>
 #include <linux/export.h>
 #include <sound/soc.h>
+#ifdef CONFIG_SOUND_CONTROL
+#include "codecs/sdm660_cdc/sdm660-cdc-registers.h"
+#endif
 
 /**
  * snd_soc_component_read() - Read register value
@@ -209,6 +212,15 @@ EXPORT_SYMBOL_GPL(snd_soc_read);
 int snd_soc_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int val)
 {
+#ifdef CONFIG_SOUND_CONTROL
+	char caller[80];
+	sprintf(caller, "%ps", __builtin_return_address(0));
+	if ((		reg == MSM89XX_CDC_CORE_RX1_VOL_CTL_B2_CTL ||
+			reg == MSM89XX_CDC_CORE_RX2_VOL_CTL_B2_CTL) &&
+			strcmp("headphone_gain_store", caller) != 0) {
+		return 0;
+	}
+#endif
 	return snd_soc_component_write(&codec->component, reg, val);
 }
 EXPORT_SYMBOL_GPL(snd_soc_write);
@@ -227,6 +239,15 @@ EXPORT_SYMBOL_GPL(snd_soc_write);
 int snd_soc_update_bits(struct snd_soc_codec *codec, unsigned int reg,
 				unsigned int mask, unsigned int value)
 {
+#ifdef CONFIG_SOUND_CONTROL
+	char caller[80];
+	sprintf(caller, "%ps", __builtin_return_address(0));
+	if ((		reg == MSM89XX_CDC_CORE_RX1_VOL_CTL_B2_CTL ||
+			reg == MSM89XX_CDC_CORE_RX2_VOL_CTL_B2_CTL) &&
+			strcmp("headphone_gain_store", caller) != 0) {
+		return 0;
+	}
+#endif
 	return snd_soc_component_update_bits(&codec->component, reg, mask,
 		value);
 }
